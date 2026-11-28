@@ -12,6 +12,7 @@ All building is done by GitHub Actions: `.github/workflows/build.yml`.
 |---|---|---|
 | `version` | `v1.0` | Version string used in file names |
 | `kernel_repo` / `kernel_branch` | LineageOS-based sm7325 tree | Kernel source to build |
+| `kernel_commit` | pinned full SHA `7a71935c...` | Pins the kernel source to the commit the tested build used, so a later upstream push cannot silently change your build. Empty = branch tip |
 | `ksun_ref` | pinned commit `e5f5ec9...` | KernelSU-Next commit. setup.sh silently falls back to the default branch if the ref can't be checked out, so the workflow verifies the pin afterwards |
 | `tweaks` | `true` | BBR + fq_codel default |
 | `disable_userfaultfd` | `false` | Optional |

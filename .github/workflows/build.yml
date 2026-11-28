@@ -12,6 +12,9 @@ on:
       kernel_branch:
         description: "Kernel source branch"
         default: "17.0"
+      kernel_commit:
+        description: "Pin the kernel source to this full commit SHA (empty = branch tip). Default = the commit the device-tested build used"
+        default: "7a71935c393b24dbe23b3caf7eb37cdf64aa820b"
       ksun_ref:
         description: "KernelSU-Next commit/branch (must come from the 'legacy' line for manual hooks)"
         default: "e5f5ec998de88b9fc43c62cff8f7ae12d3f4800a"
@@ -32,7 +35,7 @@ on:
         type: boolean
         default: false
       mglru:
-        description: "EXPERIMENTAL: Multi-Gen LRU backport (not device-tested; likely changes the vendor ABI, so the ABI guard may fail)"
+        description: "RESEARCH ONLY: Multi-Gen LRU backport. Known to FAIL the ABI guard (9259 changed CRCs); do not flash with stock vendor modules"
         type: boolean
         default: false
       allow_abi_change:
@@ -69,7 +72,16 @@ jobs:
           sudo apt-get install -y bc bison flex libssl-dev libelf-dev cpio zip lz4 python3 device-tree-compiler
 
       - name: Clone kernel
-        run: git clone --depth=1 -b "${{ inputs.kernel_branch }}" "https://github.com/${{ inputs.kernel_repo }}" kernel
+        run: |
+          git clone --depth=1 -b "${{ inputs.kernel_branch }}" "https://github.com/${{ inputs.kernel_repo }}" kernel
+          PIN="${{ inputs.kernel_commit }}"
+          if [ -n "$PIN" ]; then
+            if ! echo "$PIN" | grep -qE '^[0-9a-f]{40}$'; then echo "::error::kernel_commit must be a full 40-char SHA"; exit 1; fi
+            git -C kernel fetch --depth=1 origin "$PIN"
+            git -C kernel checkout -q FETCH_HEAD
+            [ "$(git -C kernel rev-parse HEAD)" = "$PIN" ] || { echo "::error::kernel is not at pinned commit $PIN"; exit 1; }
+          fi
+          echo "kernel at $(git -C kernel rev-parse HEAD)"
 
       - name: Restore toolchain cache
         id: clang-cache
